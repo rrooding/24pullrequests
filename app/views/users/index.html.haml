@@ -1,10 +1,14 @@
 #users.row-fluid.clearfix
   .span12
     %h3
-      = User.count
-      Developers already involved
+      = user_count
+      - if @language
+        = t("developers_using_language", language: @language)
+      - else
+        = t("developers_involved")
 
-    %ul.clearfix
-      = render @users
+    %div.users
+      %ul.clearfix.userlist
+        = render @users
 
-= paginate @users
+      = link_to_next_page @users, t("more"), remote: true, class: 'btn btn-success more'

@@ -4,13 +4,6 @@ describe PullRequest do
   let(:user) { create :user }
 
   it { should belong_to(:user) }
-  it { should allow_mass_assignment_of(:title) }
-  it { should allow_mass_assignment_of(:issue_url) }
-  it { should allow_mass_assignment_of(:body) }
-  it { should allow_mass_assignment_of(:state) }
-  it { should allow_mass_assignment_of(:merged) }
-  it { should allow_mass_assignment_of(:created_at) }
-  it { should allow_mass_assignment_of(:repo_name) }
   it { should validate_uniqueness_of(:issue_url).scoped_to(:user_id) }
 
   describe '#create_from_github' do
@@ -24,6 +17,7 @@ describe PullRequest do
     its(:body)       { should eq json['payload']['pull_request']['body'] }
     its(:merged)     { should eq json['payload']['pull_request']['merged'] }
     its(:repo_name)  { should eq json['repo']['name'] }
+    its(:language)   { should eq json['repo']['language'] }
 
     context 'when the user has authed their twitter account' do
       let(:user) { create :user, :twitter_token => 'foo', :twitter_secret => 'bar' }
@@ -50,5 +44,31 @@ describe PullRequest do
         pull_request.gifts.should be_empty
       end
     end
+  end
+
+  describe "#check_state" do
+    let(:pull_request) { create :pull_request }
+    before do
+      pull_request.stub(:fetch_data).and_return(Hashie::Mash.new mock_issue)
+      pull_request.check_state
+    end
+
+    subject { pull_request }
+
+    its(:comments_count) { should eq 5        }
+    its(:state)          { should eq "closed" }
+  end
+
+  context "#scopes" do
+    let!(:pull_requests) { 4.times.map  { create :pull_request, language: "Haskell" } }
+
+    it "by_language" do
+      PullRequest.by_language("Haskell").should eq pull_requests
+    end
+
+    it "latest" do
+      PullRequest.latest(3).should eq(pull_requests.take(3))
+    end
+
   end
 end

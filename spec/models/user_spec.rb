@@ -4,19 +4,20 @@ require 'ostruct'
 describe User do
   let(:user) { create :user }
 
-  it { should allow_mass_assignment_of(:uid) }
-  it { should allow_mass_assignment_of(:provider) }
-  it { should allow_mass_assignment_of(:nickname) }
-  it { should allow_mass_assignment_of(:email) }
-  it { should allow_mass_assignment_of(:gravatar_id) }
-  it { should allow_mass_assignment_of(:token) }
-  it { should allow_mass_assignment_of(:email_frequency) }
-  it { should allow_mass_assignment_of(:skills_attributes) }
-
   it { should have_many(:pull_requests) }
   it { should have_many(:skills) }
 
   it { should accept_nested_attributes_for(:skills) }
+
+  describe 'callbacks' do
+    describe 'before_save' do
+      it 'checks if the email address changed' do
+        new_user = build :user
+        new_user.should_receive(:check_email_changed)
+        new_user.save
+      end
+    end
+  end
 
   %w[daily weekly].each do |frequency|
     context "when user has subscribed to #{frequency} emails" do
@@ -38,6 +39,170 @@ describe User do
 
     subject { described_class.collaborators }
     it { should eq [user] }
+  end
+
+  describe '.confirmed?' do
+    subject { user }
+
+    context 'email unconfirmed' do
+      it 'returns false' do
+        expect(subject).to_not be_confirmed
+      end
+    end
+
+    context 'email confirmed' do
+      before do
+        subject.confirm!
+      end
+
+      it 'returns true' do
+        expect(subject).to be_confirmed
+      end
+    end
+  end
+
+  describe '.confirm!' do
+    subject { user }
+
+    context 'no email configured' do
+      before do
+        subject.email = nil
+      end
+
+      it 'returns false' do
+        expect(subject.confirm!).to be_false
+      end
+
+      it 'adds an error to the user email field' do
+        subject.confirm!
+
+        expect(subject.errors.messages[:email]).to include 'Email is required for confirmation'
+      end
+    end
+
+    context 'email unconfirmed' do
+      it 'returns true' do
+        expect(subject.confirm!).to be_true
+      end
+
+      it 'sets the confirmed_at field' do
+        subject.confirm!
+
+        expect(subject.confirmed_at).to_not be_nil
+      end
+
+      it 'clears the confirmation_token field' do
+        subject.confirm!
+
+        expect(subject.confirmation_token).to be_nil
+      end
+    end
+
+    context 'email already confirmed' do
+      before do
+        subject.confirm!
+      end
+
+      it 'returns false' do
+        expect(subject.confirm!).to be_false
+      end
+
+      it 'adds an error to the user email field' do
+        subject.confirm!
+
+        expect(subject.errors.messages[:email]).to include 'Email is already confirmed'
+      end
+    end
+  end
+
+  describe '.generate_confirmation_token' do
+    subject { user }
+
+    before do
+      subject.update_attribute(:confirmation_token, nil)
+    end
+
+    it 'generates a confirmation token' do
+      subject.generate_confirmation_token
+
+      expect(subject.confirmation_token).to_not be_nil
+    end
+  end
+
+  describe '.check_email_changed' do
+    subject { user }
+
+    before do
+      subject.confirm!
+    end
+
+    let!(:old_token) { subject.confirmation_token }
+
+    context 'email didnt change' do
+      before do
+        subject.save
+      end
+
+      it 'doesnt reset the confirmed_at field' do
+        expect(subject.confirmed_at).to_not be_nil
+      end
+
+      it 'doesnt send an email' do
+        ConfirmationMailer.should_not_receive(:confirmation)
+
+        subject.save
+      end
+    end
+
+    context 'email did change' do
+      before do
+        subject.update_attribute(:email, 'another@email.addr')
+      end
+
+      it 'resets the confirmed_at field' do
+        expect(subject.confirmed_at).to be_nil
+      end
+
+      it 'generates a new token' do
+        expect(subject.confirmation_token).to_not eq old_token
+      end
+
+      it 'sends a confirmation email' do
+        stub_mailer = double(ConfirmationMailer)
+        stub_mailer.stub(:deliver)
+        ConfirmationMailer.should_receive(:confirmation).and_return(stub_mailer)
+
+        subject.update_attribute(:email, 'different@email.addr')
+      end
+    end
+  end
+
+  describe '.send_notification_mail' do
+    subject { user }
+
+    before do
+      subject.update_attribute(:email_frequency, 'daily')
+    end
+
+    context 'email unconfirmed' do
+      it 'doesnt send the notification email' do
+        ReminderMailer.should_not_receive(:daily)
+
+        subject.send_notification_email
+      end
+    end
+
+    context 'email confirmed' do
+      it 'sends the notification email' do
+        stub_mailer = double(ReminderMailer)
+        stub_mailer.stub(:deliver)
+
+        ReminderMailer.should_receive(:daily).and_return(stub_mailer)
+
+        subject.confirm!
+        subject.send_notification_email
+      end
+    end
   end
 
   describe '.estimate_skills' do
@@ -81,18 +246,16 @@ describe User do
       user.download_pull_requests
     end
 
-    subject { user }
+    subject { user.pull_requests }
 
-    context 'when the pull request does not exist' do
-      its(:pull_requests) { should have(1).pull_request }
+    context 'when the pull request does not aleady exist' do
+      its(:length) { should eq 1 }
     end
 
     context 'when the pull request already exists' do
-      before do
-        user.pull_requests.should_receive(:create).never
-      end
+      it { should_receive(:create).never }
 
-      its(:pull_requests) { should have(1).pull_request }
+      its(:length) { should eq 1 }
     end
   end
 
@@ -130,4 +293,30 @@ describe User do
       user.new_gift(:foo => 'bar').foo.should == 'bar'
     end
   end
+
+  describe '.is_collaborator?' do
+    let(:collaborator) { create :user, nickname: "akira" }
+    let(:non_collaborator) { create :user }
+
+    before do
+      User.should_receive(:collaborators).and_return([collaborator])
+    end
+    it 'identifies if a user is a collaborator' do
+      collaborator.is_collaborator?.should eq(true)
+    end
+
+    it 'identifies if a user is not a collaborator' do
+      non_collaborator.is_collaborator?.should eq(false)
+    end
+  end
+
+  context "#scopes" do
+    let!(:haskell_users) { 2.times.map { create(:skill, language: "Haskell").user } }
+
+    it "by_language" do
+      User.by_language("haskell").should eq(haskell_users)
+      User.by_language("ruby").should eq([])
+    end
+  end
+
 end

@@ -14,7 +14,7 @@
     %h4 'Tis the season
     %hr
     %p You've been benefiting from the use of open source projects all year, now is the time to say thanks to the maintainers of those projects, and a little birdy tells me that they love receiving pull requests!
-    
+
     %hr
     - unless logged_in?
       %p
@@ -22,7 +22,11 @@
           %strong Log in with GitHub
       %hr
     = render :partial => 'shared/social_buttons'
-
+    %hr
+    %h4 Questions & Answers
+    %hr
+    %p
+      = "Join the chat on IRC, #{link_to '#24pullrequests', 'http://webchat.freenode.net/?channels=#24pullrequests'}, at freenode.".html_safe
 
   .span6#info
     #coderwall
@@ -54,15 +58,16 @@
 
     %ul.clearfix
       = render @users
-.row-fluid.clearfix
-  .span12
-    %h3
-      Latest Pull Requests (#{PullRequest.count} total)
-      = link_to 'View All', pull_requests_path, :class => 'btn pull-right'
+- if @pull_requests.any?
+  .row-fluid.clearfix
+    .span12
+      %h3
+        Latest Pull Requests (#{@pull_requests.count} total)
+        = link_to 'View All', pull_requests_path, :class => 'btn pull-right'
 
-  #pull_requests
-    = render @pull_requests
-%hr
+    #pull_requests
+      = render @pull_requests
+  %hr
 .row-fluid.clearfix
   .span12
     %h3
@@ -76,4 +81,3 @@
   #projects
     = render @projects
 %hr
-

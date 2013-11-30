@@ -1,7 +1,7 @@
 source 'https://rubygems.org'
 ruby "2.0.0"
 
-gem 'rails', '3.2.14'
+gem 'rails', '4.0.1'
 
 gem 'jquery-rails'
 
@@ -22,6 +22,8 @@ gem 'twitter'
 gem 'anjlab-bootstrap-rails', '~> 2.3.1', :require => 'bootstrap-rails'
 gem 'simple_form'
 gem 'rack-google-analytics'
+gem 'ffi', '1.9.0'
+gem 'csv_shaper'
 
 group :assets do
   gem 'sass-rails'
@@ -55,18 +57,20 @@ group :development, :test do
 end
 
 group :test do
-  gem "capybara"
-  gem 'capybara-webkit'
+  gem 'capybara'
+  gem 'poltergeist'
   gem 'launchy'
 
   gem 'database_cleaner'
   gem 'shoulda-matchers'
   gem 'webmock', :require => false
-  gem 'poltergeist'
   gem 'timecop'
+
+  gem 'coveralls', require: false
 end
 
 group :production do
   gem 'memcachier'
   gem 'dalli'
+  gem 'rails_12factor'
 end

@@ -29,6 +29,7 @@ FactoryGirl.define do
     merged false
     created_at { DateTime.now.to_s }
     repo_name { Faker::Lorem.words.first }
+    language { Project::LANGUAGES.sample }
   end
 
   factory :project do
@@ -36,6 +37,7 @@ FactoryGirl.define do
     github_url { "https://github.com/#{Faker::Lorem.word}/#{Faker::Lorem.word}" }
     name { Faker::Lorem.words.first }
     main_language { Project::LANGUAGES.sample }
+    submitted_by { create(:user) }
   end
 
   factory :gift do

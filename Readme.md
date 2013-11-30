@@ -1,6 +1,6 @@
 # 24 Pull Requests
 
-[![Build Status](https://secure.travis-ci.org/andrew/24pullrequests.png?branch=master)](https://travis-ci.org/andrew/24pullrequests) [![Dependency Status](https://gemnasium.com/andrew/24pullrequests.png)](https://gemnasium.com/andrew/24pullrequests) [![Code Climate](https://codeclimate.com/github/andrew/24pullrequests.png)](https://codeclimate.com/github/andrew/24pullrequests)
+[![Build Status](https://secure.travis-ci.org/andrew/24pullrequests.png?branch=master)](https://travis-ci.org/andrew/24pullrequests) [![Dependency Status](https://gemnasium.com/andrew/24pullrequests.png)](https://gemnasium.com/andrew/24pullrequests) [![Code Climate](https://codeclimate.com/github/andrew/24pullrequests.png)](https://codeclimate.com/github/andrew/24pullrequests) [![Coverage Status](https://coveralls.io/repos/andrew/24pullrequests/badge.png)](https://coveralls.io/r/andrew/24pullrequests)
 
 “Giving back little gifts of code”
 
@@ -28,19 +28,19 @@ Report issues/feature requests on [GitHub Issues](http://github.com/andrew/24pul
 
 New to Ruby? No worries!
 
-First things first, you'll need to install Ruby 1.9.3. I recommend using the excellent [rbenv](https://github.com/sstephenson/rbenv),
+First things first, you'll need to install Ruby 2.0. I recommend using the excellent [rbenv](https://github.com/sstephenson/rbenv),
 and [ruby-build](https://github.com/sstephenson/ruby-build)
 
 ```bash
-rbenv install 1.9.3-p194
-rbenv global 1.9.3-p194
+rbenv install 2.0.0-p353
+rbenv global 2.0.0-p353
 ```
 
 Next, you'll need to make sure that you have postgres installed. This can be
 done easily using [Homebrew](http://mxcl.github.com/homebrew/) or by using http://postgresapp.com
 
 ```bash
-brew install postgres
+brew install postgres qt
 ```
 
 Now, let's install the gems from the `Gemfile` ("Gems" are synonymous with libraries in other

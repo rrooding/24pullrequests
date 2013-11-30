@@ -1,5 +1,12 @@
 require 'simplecov'
+require 'coveralls'
+
+SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter[
+  SimpleCov::Formatter::HTMLFormatter,
+  Coveralls::SimpleCov::Formatter
+]
 SimpleCov.start
+
 
 require 'spork'
 
@@ -20,12 +27,8 @@ Spork.prefork do
 
   WebMock.disable_net_connect! :allow_localhost => true
 
-  # To run specs headless, use :webkit driver:
-  Capybara.javascript_driver = :webkit
-  if ENV['POLTERGEIST']
-    require 'capybara/poltergeist'
-    Capybara.javascript_driver = :poltergeist
-  end
+  require 'capybara/poltergeist'
+  Capybara.javascript_driver = :poltergeist
 
   # Requires supporting ruby files with custom matchers and macros, etc,
   # in spec/support/ and its subdirectories.
@@ -88,7 +91,7 @@ Spork.each_run do
     config.before do
       User.any_instance.stub(:estimate_skills).and_return(nil)
       Twitter::Client.any_instance.stub(:update)
-      Timecop.travel(Date.parse('12/12/2012'))
+      Timecop.travel(Date.parse('12/12/2013'))
     end
 
     config.after do

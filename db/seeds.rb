@@ -7,7 +7,7 @@
 #   Mayor.create(:name => 'Emanuel', :city => cities.first)
 
 # Create some test data for development environments.
-if Rails.env.development? && User.count == 0
+if Rails.env.development?
   require 'factory_girl_rails'
   require 'faker'
   include FactoryGirl::Syntax::Methods
@@ -45,5 +45,6 @@ if Rails.env.development? && User.count == 0
 
   Rails.configuration.collaborators.each do |collaborator|
     user = create :user, :nickname => collaborator.login, :gravatar_id => collaborator.gravatar_id
+    create :skill, user: user
   end
 end

@@ -1,16 +1,18 @@
 class User < ActiveRecord::Base
-  attr_accessible :uid, :provider, :nickname, :email, :gravatar_id, :token, :email_frequency, :skills_attributes, :twitter_token
-
   attr_writer :gift_factory
 
   has_many :pull_requests, :dependent => :destroy
   has_many :skills,        :dependent => :destroy
   has_many :gifts,         :dependent => :destroy
+  has_many :projects
+
+  scope :by_language, -> (language) { joins(:skills).where("lower(language) = ?", language.downcase) }
 
   paginates_per 99
 
   accepts_nested_attributes_for :skills, :reject_if => proc { |attributes| !Project::LANGUAGES.include?(attributes['language']) }
 
+  before_save :check_email_changed
   after_create :download_pull_requests, :estimate_skills
 
   validates_presence_of :email, :if => :send_regular_emails?
@@ -34,7 +36,7 @@ class User < ActiveRecord::Base
     return [] if collabs.nil?
     collaborators = collabs.map(&:login)
     result = where('nickname in (?)', collaborators)
-    collaborators.map { |c| result.find { |u| u.nickname == c } }
+    collaborators.compact.map { |c| result.find { |u| u.nickname == c } }
   end
 
   def authorize_twitter!(nickname, token, secret)
@@ -81,10 +83,46 @@ class User < ActiveRecord::Base
   end
 
   def github_client
-    @github_client ||= Octokit::Client.new(:login => nickname, :oauth_token => token, :auto_traversal => true)
+    @github_client ||= Octokit::Client.new(:login => nickname, :access_token => token, :auto_paginate => true)
+  end
+
+  def confirmed?
+    !!confirmed_at
+  end
+
+  def confirm!
+    if email.present? && !confirmed?
+      self.confirmation_token = nil
+      self.confirmed_at = Time.now.utc
+      save
+    elsif confirmed?
+      errors.add(:email, :already_confirmed)
+      false
+    else
+      errors.add(:email, :required_for_confirmation)
+      false
+    end
+  end
+
+  def generate_confirmation_token
+    self.confirmation_token = loop do
+      token = SecureRandom.urlsafe_base64
+      break token unless User.where(confirmation_token: token).exists?
+    end
+  end
+
+  def check_email_changed
+    return unless self.email_changed?
+
+    self.generate_confirmation_token
+    self.confirmed_at = nil
+
+    ConfirmationMailer.confirmation(self).deliver
   end
 
   def send_notification_email
+    return unless confirmed?
+
     if send_daily?
       ReminderMailer.daily(self).deliver
     elsif send_weekly?
@@ -151,7 +189,12 @@ class User < ActiveRecord::Base
     last_gift.nil? ? PullRequest::EARLIEST_PULL_DATE : last_gift.date + 1.day
   end
 
+  def is_collaborator?
+    @collaborator ||= User.collaborators.include?(self)
+  end
+
   private
+
   def pull_request_downloader
     Rails.application.config.pull_request_downloader.call(nickname, token)
   end
@@ -177,5 +220,4 @@ class User < ActiveRecord::Base
   def gift_factory
     @gift_factory ||= Gift.public_method(:new)
   end
-
 end

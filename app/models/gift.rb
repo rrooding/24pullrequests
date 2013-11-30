@@ -1,5 +1,4 @@
 class Gift < ActiveRecord::Base
-  attr_accessible :user, :pull_request, :date
 
   class << self
     attr_writer :default_date
@@ -18,6 +17,8 @@ class Gift < ActiveRecord::Base
 
   delegate :title, :issue_url, :to => :pull_request, :prefix => true
 
+  scope :year, -> (year) { where('EXTRACT(year FROM "created_at") = ?', year) }
+
   after_initialize do
     self.date ||= Gift.default_date
   end
@@ -26,8 +27,8 @@ class Gift < ActiveRecord::Base
     where(:user_id => user_id, :date => date).first
   end
 
-  def self.giftable_dates
-    1.upto(24).map { |day| Date.new(2012,12,day) }
+  def self.giftable_dates(year = 2013)
+    1.upto(24).map { |day| Date.new(year,12,day) }
   end
 
   def self.default_date

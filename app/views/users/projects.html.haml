@@ -1,0 +1,8 @@
+- if @projects.any?
+  = render @projects, editable: true
+- else
+  = t("no_suggestions")
+  = link_to t("suggest_project"), new_project_path
+
+%hr
+=render partial: "projects/claim"

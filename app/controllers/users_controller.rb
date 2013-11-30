@@ -1,5 +1,8 @@
 class UsersController < ApplicationController
+  before_action :ensure_logged_in, only: [ :projects ]
+
   respond_to :html, :json
+  respond_to :js, only: :index
 
   def index
     @users = User.order('pull_requests_count desc').includes(:pull_requests).page params[:page]
@@ -8,7 +11,11 @@ class UsersController < ApplicationController
 
   def show
     @user      = User.find_by_nickname!(params[:id])
-    @calendar  = Calendar.new(Gift.giftable_dates, @user.gifts)
+    @calendar  = Calendar.new(Gift.giftable_dates(current_year), @user.gifts)
     respond_with @user
+  end
+
+  def projects
+    @projects = current_user.projects
   end
 end

@@ -1,13 +1,20 @@
 Tfpullrequests::Application.routes.draw do
-  match '/404', :to => 'errors#not_found'
-  match '/422', :to => 'errors#unprocessable'
-  match '/500', :to => 'errors#internal'
+  get '/404', :to => 'errors#not_found'
+  get '/422', :to => 'errors#unprocessable'
+  get '/500', :to => 'errors#internal'
 
   resources :gifts
   resources :users
-  resources :projects, :only => [:index, :new, :create]
+  get '/users/:id/:year', :to => 'users#show'
+
+  resources :projects, :only => [:index, :new, :create, :edit, :update] do
+    collection do
+      post :claim
+    end
+  end
+
   resources :pull_requests, :only => [:index]
-  resource  :dashboard do 
+  resource  :dashboard do
     member do
       get :delete
       delete :destroy
@@ -15,25 +22,40 @@ Tfpullrequests::Application.routes.draw do
   end
   resource  :pull_request_download, :only => :create
 
-  match '/preferences', :to => 'dashboards#preferences', :as => 'preferences'
-  match '/preferences/update', :to => 'dashboards#update_preferences', :as => 'update_preferences'
+  get '/confirm/:confirmation_token', to: 'dashboards#confirm_email', as: 'confirm_email'
 
-  match '/login',  :to => 'sessions#new',     :as => 'login'
-  match '/logout', :to => 'sessions#destroy', :as => 'logout'
+  get   '/preferences',        :to => 'dashboards#preferences',        :as => 'preferences'
+  patch '/preferences/update', :to => 'dashboards#update_preferences', :as => 'update_preferences'
+  get :my_suggestions, to: 'users#projects', as: :my_suggestions
 
-  match '/auth/twitter/callback',   :to => 'twitter#authorize'
+  get '/login',  :to => 'sessions#new',     :as => 'login'
+  get '/logout', :to => 'sessions#destroy', :as => 'logout'
+
+  get '/auth/twitter/callback',    :to => 'twitter#authorize'
   delete '/twitter/remove',         :to => 'twitter#remove'
 
-  match '/auth/:provider/callback', :to => 'sessions#create'
-  match '/auth/failure',            :to => 'sessions#failure'
+  match '/auth/:provider/callback', :to => 'sessions#create', :via => [:get, :post]
+  post '/auth/failure',             :to => 'sessions#failure'
 
-  match 'about', :to => 'static#about'
-  match 'api', :to => 'static#api'
-  match 'contributing', :to => 'static#contributing'
+  get 'about', :to => 'static#about'
+  get 'api', :to => 'static#api'
+  get 'contributing', :to => 'static#contributing'
+
+  resources :languages do
+    member do
+      get :projects
+      get :pull_requests
+      get :users
+    end
+  end
 
   root :to => 'static#homepage'
 
-  match '/email' => redirect('/preferences') # old preferences URL
+  get '/email' => redirect('/preferences') # old preferences URL
 
-  match '/:id' => redirect('/users/%{id}') # User public vanity url, must be lowest priority
+  get '/:id' => redirect('/users/%{id}') # User public vanity url, must be lowest priority
+
+  namespace :admin do
+    resources :projects, only: [ :index, :edit, :update ]
+  end
 end

@@ -2,19 +2,25 @@
   .span10
     %h2
       #{@user.nickname}
+
+    .row-flud
+      =gittip_button @user.nickname
+
+    %br
+
     .row-fluid.clearfix.social-buttons
       .span4
         = github_button @user.nickname
       - if @user.twitter_nickname.present?
         .span6
           %a{:href => "https://twitter.com/#{@user.twitter_nickname}", :class => 'twitter-follow-button'}
-            Follow
-            @#{@user.twitter_nickname}
+            =t("follow_user", twitter: @user.twitter_nickname)
           :javascript
             !function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="//platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");
 
     - if @user.skills.any?
-      %h4 Preferred Languages
+      %h4
+        =t("preferred_languages")
       = @user.languages.to_sentence
 
   .span2
@@ -24,13 +30,21 @@
   .span12
 
     %h3 24 Pull Requests
-    %h4
-      =@user.nickname
-      has made
-      =@user.pull_requests.count
-      total pull requests so far.
-    = render :partial => 'calendar', :object => @calendar
-
+    - if @user.gifts.year(current_year).any? or @user.pull_requests.year(current_year).any?
+      %h4
+        =t("user.pull_request_count", user: @user.nickname, count: @user.pull_requests.year(current_year).count, year: current_year)
+      %ul#presents.nav.nav-tabs
+        %li
+          %a.active{"data-toggle" =>"tab", href: "#gifts"}Gifts
+        %li
+          %a{"data-toggle" =>"tab", href: "#pull_requests"}Pull Requests
+      .tab-content
+        #gifts.tab-pane
+          = render :partial => 'calendar', :object => @calendar
+        #pull_requests.tab-pane
+          = render partial: 'users/pull_request', collection: @user.pull_requests
+    - else
+      %h4=t("user.grinchy_message", user: @user.nickname, year: current_year)
 .row-fluid
   %h3 Coderwall Badges
   #coderwall-content{:data => {:nickname => "#{@user.nickname}"}}

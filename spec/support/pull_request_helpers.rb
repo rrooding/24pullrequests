@@ -13,8 +13,16 @@ module PullRequestHelpers
         }
       },
       'repo' => {
-        'name' => Faker::Lorem.words.first
+        'name' => Faker::Lorem.words.first,
+        'language' => Project::LANGUAGES.sample
       }
+    }
+  end
+
+  def mock_issue
+    {
+      'state'    => 'closed',
+      'comments' => '5'
     }
   end
 end
